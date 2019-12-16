@@ -1,0 +1,26 @@
+sudo: required
+language: generic
+services:
+  - docker
+
+before_install:
+  - docker build -t bpremkumar/react-test -f ./client/Dockerfile.dev ./client
+
+# this script replaces the -- --coverage in the older version
+script:
+  - docker run -e CI=true bpremkumar/react-test npm test
+
+after_success: 
+  - docker build -t bpremkumar/multi-client ./client 
+  - docker build -t bpremkumar/multi-server ./server
+  - docker build -t bpremkumar/multi-nginx ./nginx
+  - docker build -t bpremkumar/multi-worker ./worker
+
+  # Before pushing we have to login to docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  # Push the build to docker hub
+  - docker push bpremkumar/multi-client
+  - docker push bpremkumar/multi-server
+  - docker push bpremkumar/multi-nginx
+  - docker push bpremkumar/multi-worker
