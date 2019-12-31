@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: server-deployment    
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            component: server
+    template:
+        metadata:
+            labels:
+                component: server
+        spec:
+            containers:
+                - name: server
+                  image: bpremkumar/multi-server
+                  ports:
+                    - containerPort: 5000
+                  env: # All numbers should be in quotes for environment variables. 
+                    - name: REDIS_HOST
+                      value: redis-cluster-ip-service
+                    - name: REDIS_PORT
+                      value: '6379'
+                    - name: PGUSER # May be stored as a Secret
+                      value: postgres
+                    - name: PGHOST
+                      value: postgres-cluster-ip-service
+                    - name: PGPORT
+                      value: '5432'
+                    - name: PGDATABASE # Makes sense to save as a secret.
+                      value: postgres
+                    - name: PGPASSWORD
+                      valueFrom: # to read from the environmnet rather than directly giving the value in the config file. 
+                        secretKeyRef:
+                            name: pgpassword # this is the name of the secret we created using kubectl create secret
+                            key: PGPASSWORD # This is the key-value pair when we did kubectl create secret. 
+                       
