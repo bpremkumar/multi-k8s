@@ -1,0 +1,29 @@
+sudo: required
+services:
+    - docker 
+env:
+    global:
+        - GIT_SHA=$(git rev-parse HEAD) # gets the latest SHA for the git commit.
+        - CLOUDSDK_CORE_DISABLE_PROMPTS=1 # configure the gcloud cli not to display prompts for inputs
+before_install:
+    - openssl aes-256-cbc -K $encrypted_0c35eebf403c_key -iv $encrypted_0c35eebf403c_iv -in service-account.json.enc -out service-account.json -d
+    - curl https://sdk.cloud.google.com | bash > /dev/null;
+    - source $HOME/google-cloud-sdk/path.bash.inc
+    - gcloud components update kubectl
+    - gcloud auth activate-service-account --key-file service-account.json
+    - gcloud config set project multi-k8s-263703
+    - gcloud config set compute/zone us-central1-a
+    - gcloud container clusters get-credentials multi-cluster
+    - echo $DOCKER_PASSWORD | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker build -t bpremkumar/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+    - docker run -e CI=true bpremkumar/react-test npm run test
+
+deploy:
+    provider: script # Telling travis to run the script file for deploying our code. 
+    script: bash ./deploy.sh
+    on:
+        branch: master #says only deploy when we make changes to the master branch not with the dev branch. 
+
+
